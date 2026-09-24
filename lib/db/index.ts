@@ -45,6 +45,7 @@ async function createTables() {
       body text NOT NULL,
       sources jsonb NOT NULL DEFAULT '[]'::jsonb,
       tags jsonb NOT NULL DEFAULT '[]'::jsonb,
+      starred boolean NOT NULL DEFAULT false,
       created_at timestamp NOT NULL
     )
   `;
@@ -53,6 +54,7 @@ async function createTables() {
   await sql`ALTER TABLE memos ADD COLUMN IF NOT EXISTS research_date text`;
   await sql`ALTER TABLE memos ADD COLUMN IF NOT EXISTS asset_class text`;
   await sql`ALTER TABLE memos ADD COLUMN IF NOT EXISTS sources jsonb NOT NULL DEFAULT '[]'::jsonb`;
+  await sql`ALTER TABLE memos ADD COLUMN IF NOT EXISTS starred boolean NOT NULL DEFAULT false`;
   await sql`
     CREATE TABLE IF NOT EXISTS watchlist (
       ticker text PRIMARY KEY,

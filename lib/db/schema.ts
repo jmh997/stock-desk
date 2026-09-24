@@ -1,4 +1,4 @@
-import { jsonb, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
 
 export type MemoSource = { title?: string; url?: string };
 export type AssetClass = "stock" | "etf" | "other";
@@ -14,6 +14,8 @@ export const memos = pgTable("memos", {
   body: text("body").notNull(),
   sources: jsonb("sources").$type<MemoSource[]>().notNull().default([]),
   tags: jsonb("tags").$type<string[]>().notNull().default([]),
+  /** Favorite / star — starred memos sort first */
+  starred: boolean("starred").notNull().default(false),
   /** Ingest / row creation timestamp (ISO) */
   createdAt: timestamp("created_at", { mode: "string" }).notNull(),
 });
