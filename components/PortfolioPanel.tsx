@@ -1,4 +1,8 @@
+"use client";
+
+import { useMemo } from "react";
 import { addHolding, removeHolding } from "@/lib/actions";
+import { SortTh, useClientSort } from "@/components/sortable";
 import type { Holding } from "@/lib/db/schema";
 import { formatNumber, formatPct, formatPrice } from "@/lib/format";
 import type { Quote } from "@/lib/quotes";
@@ -25,31 +29,45 @@ export function PortfolioPanel({
   holdings: Holding[];
   quotes: Record<string, Quote>;
 }) {
-  const rows: Row[] = holdings.map((h) => {
-    const price = quotes[h.ticker]?.price ?? null;
-    const marketValue =
-      price != null ? price * h.shares : null;
-    const costBasis =
-      h.avgCost != null ? h.avgCost * h.shares : null;
-    const pnl =
-      marketValue != null && costBasis != null
-        ? marketValue - costBasis
-        : null;
-    const pnlPct =
-      pnl != null && costBasis != null && costBasis !== 0
-        ? (pnl / costBasis) * 100
-        : null;
-    return { ...h, price, marketValue, costBasis, pnl, pnlPct };
-  });
+  const rows: Row[] = useMemo(
+    () =>
+      holdings.map((h) => {
+        const price = quotes[h.ticker]?.price ?? null;
+        const marketValue = price != null ? price * h.shares : null;
+        const costBasis = h.avgCost != null ? h.avgCost * h.shares : null;
+        const pnl =
+          marketValue != null && costBasis != null
+            ? marketValue - costBasis
+            : null;
+        const pnlPct =
+          pnl != null && costBasis != null && costBasis !== 0
+            ? (pnl / costBasis) * 100
+            : null;
+        return { ...h, price, marketValue, costBasis, pnl, pnlPct };
+      }),
+    [holdings, quotes],
+  );
 
-  const totalMv = rows.reduce(
-    (sum, r) => sum + (r.marketValue ?? 0),
-    0,
+  const accessors = useMemo(
+    () => ({
+      ticker: (r: Row) => r.ticker,
+      shares: (r: Row) => r.shares,
+      avgCost: (r: Row) => r.avgCost,
+      marketValue: (r: Row) => r.marketValue,
+      pnl: (r: Row) => r.pnl,
+    }),
+    [],
   );
-  const totalCost = rows.reduce(
-    (sum, r) => sum + (r.costBasis ?? 0),
-    0,
+
+  const { sorted, sortKey, sortDir, onSort } = useClientSort(
+    rows,
+    "ticker",
+    "asc",
+    accessors,
   );
+
+  const totalMv = rows.reduce((sum, r) => sum + (r.marketValue ?? 0), 0);
+  const totalCost = rows.reduce((sum, r) => sum + (r.costBasis ?? 0), 0);
   const hasCost = rows.some((r) => r.costBasis != null);
   const totalPnl = hasCost ? totalMv - totalCost : null;
   const totalPnlPct =
@@ -61,7 +79,10 @@ export function PortfolioPanel({
         <div>
           <h2 className="text-sm font-semibold">Portfolio</h2>
           <p className="mt-0.5 text-xs text-[var(--muted)]">
-            Mkt value {formatPrice(rows.some((r) => r.marketValue != null) ? totalMv : null)}
+            Mkt value{" "}
+            {formatPrice(
+              rows.some((r) => r.marketValue != null) ? totalMv : null,
+            )}
             {totalPnl != null && (
               <>
                 {" · "}
@@ -73,10 +94,7 @@ export function PortfolioPanel({
             )}
           </p>
         </div>
-        <form
-          action={addHolding}
-          className="flex flex-wrap items-end gap-2"
-        >
+        <form action={addHolding} className="flex flex-wrap items-end gap-2">
           <input
             name="ticker"
             placeholder="Ticker"
@@ -110,23 +128,53 @@ export function PortfolioPanel({
         <table className="dense">
           <thead>
             <tr>
-              <th>Ticker</th>
-              <th>Shares</th>
-              <th>Avg cost</th>
-              <th>Mkt value</th>
-              <th>P/L</th>
+              <SortTh
+                label="Ticker"
+                col="ticker"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortTh
+                label="Shares"
+                col="shares"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortTh
+                label="Avg cost"
+                col="avgCost"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortTh
+                label="Mkt value"
+                col="marketValue"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
+              <SortTh
+                label="P/L"
+                col="pnl"
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={onSort}
+              />
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {sorted.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-[var(--muted)]">
                   No holdings yet.
                 </td>
               </tr>
             ) : (
-              rows.map((r) => (
+              sorted.map((r) => (
                 <tr key={r.id}>
                   <td className="font-semibold tracking-wide">{r.ticker}</td>
                   <td className="font-mono text-[0.8rem]">
