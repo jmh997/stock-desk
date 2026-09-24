@@ -90,11 +90,40 @@ export async function createMemo(formData: FormData) {
     body,
     sources,
     tags,
+    starred: false,
     createdAt: nowIso(),
   });
   revalidatePath("/memos");
   revalidatePath(`/memos/${id}`);
   redirect(`/memos/${id}`);
+}
+
+export async function deleteMemo(id: string) {
+  if (!id) return;
+  await ensureSchema();
+  const db = getDb();
+  await db.delete(memos).where(eq(memos.id, id));
+  revalidatePath("/memos");
+  revalidatePath(`/memos/${id}`);
+}
+
+export async function deleteMemoAndRedirect(id: string) {
+  await deleteMemo(id);
+  redirect("/memos");
+}
+
+export async function toggleMemoStar(id: string) {
+  if (!id) return;
+  await ensureSchema();
+  const db = getDb();
+  const rows = await db.select().from(memos).where(eq(memos.id, id)).limit(1);
+  if (!rows[0]) return;
+  await db
+    .update(memos)
+    .set({ starred: !rows[0].starred })
+    .where(eq(memos.id, id));
+  revalidatePath("/memos");
+  revalidatePath(`/memos/${id}`);
 }
 
 export async function listMemos(q?: string) {
@@ -112,12 +141,20 @@ export async function listMemos(q?: string) {
           sql`${memos.tags}::text ILIKE ${term}`,
         ),
       )
-      .orderBy(desc(memos.researchDate), desc(memos.createdAt));
+      .orderBy(
+        desc(memos.starred),
+        desc(memos.researchDate),
+        desc(memos.createdAt),
+      );
   }
   return db
     .select()
     .from(memos)
-    .orderBy(desc(memos.researchDate), desc(memos.createdAt));
+    .orderBy(
+      desc(memos.starred),
+      desc(memos.researchDate),
+      desc(memos.createdAt),
+    );
 }
 
 export async function getMemo(id: string) {

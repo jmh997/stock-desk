@@ -38,11 +38,19 @@ export async function GET(req: NextRequest) {
               sql`${memos.tags}::text ILIKE ${`%${q}%`}`,
             ),
           )
-          .orderBy(desc(memos.researchDate), desc(memos.createdAt))
+          .orderBy(
+            desc(memos.starred),
+            desc(memos.researchDate),
+            desc(memos.createdAt),
+          )
       : await db
           .select()
           .from(memos)
-          .orderBy(desc(memos.researchDate), desc(memos.createdAt));
+          .orderBy(
+            desc(memos.starred),
+            desc(memos.researchDate),
+            desc(memos.createdAt),
+          );
     return NextResponse.json({ memos: rows });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -68,6 +76,8 @@ export async function POST(req: NextRequest) {
     const assetClass = parseAssetClass(body.assetClass);
     const sources = parseSources(body.sources);
     const tags = parseTags(body.tags);
+    const starred =
+      typeof body.starred === "boolean" ? body.starred : false;
 
     if (!ticker || !memoBody) {
       return NextResponse.json(
@@ -93,6 +103,7 @@ export async function POST(req: NextRequest) {
       body: memoBody,
       sources,
       tags,
+      starred,
       createdAt,
     };
     await db.insert(memos).values(row).onConflictDoNothing();
