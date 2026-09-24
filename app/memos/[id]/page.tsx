@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MemoActions } from "@/components/MemoActions";
 import { MemoMarkdown } from "@/components/MemoMarkdown";
 import { getMemo } from "@/lib/actions";
 import { memoDisplayTitle, type Memo } from "@/lib/db/schema";
@@ -18,15 +19,18 @@ export default async function MemoDetailPage({ params }: Props) {
   }
   if (!memo) notFound();
 
+  const title = memoDisplayTitle(memo);
+
   return (
     <article className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
             {memo.assetClass || "memo"} · {memo.researchDate}
+            {memo.starred ? " · starred" : ""}
           </p>
           <h1 className="mt-1 text-xl font-semibold tracking-tight">
-            {memoDisplayTitle(memo)}
+            {title}
           </h1>
           {memo.tags?.length > 0 && (
             <p className="mt-2 flex flex-wrap gap-1.5">
@@ -41,9 +45,12 @@ export default async function MemoDetailPage({ params }: Props) {
             </p>
           )}
         </div>
-        <Link href="/memos" className="btn-ghost">
-          ← Memos
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <MemoActions id={memo.id} starred={!!memo.starred} label={title} />
+          <Link href="/memos" className="btn-ghost">
+            ← Memos
+          </Link>
+        </div>
       </div>
 
       <div className="card p-4 sm:p-5">
