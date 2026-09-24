@@ -5,6 +5,10 @@ export type Quote = {
   price: number | null;
   previousClose: number | null;
   changePercent: number | null;
+  /** 52-week high from Yahoo chart meta (Finnhub quote has no 52w fields). */
+  week52High: number | null;
+  /** 52-week low from Yahoo chart meta (Finnhub quote has no 52w fields). */
+  week52Low: number | null;
   source: "yahoo" | "finnhub" | "none";
   error?: string;
 };
@@ -21,6 +25,19 @@ function normalizeTicker(raw: string): string {
 function pctChange(price: number | null, previousClose: number | null): number | null {
   if (price == null || previousClose == null || previousClose === 0) return null;
   return ((price - previousClose) / previousClose) * 100;
+}
+
+function emptyQuote(symbol: string, extras?: Partial<Quote>): Quote {
+  return {
+    symbol,
+    price: null,
+    previousClose: null,
+    changePercent: null,
+    week52High: null,
+    week52Low: null,
+    source: "none",
+    ...extras,
+  };
 }
 
 async function fetchYahoo(symbol: string): Promise<Quote> {
@@ -43,6 +60,8 @@ async function fetchYahoo(symbol: string): Promise<Quote> {
           regularMarketPrice?: number;
           previousClose?: number;
           chartPreviousClose?: number;
+          fiftyTwoWeekHigh?: number;
+          fiftyTwoWeekLow?: number;
           symbol?: string;
         };
         indicators?: {
@@ -75,11 +94,18 @@ async function fetchYahoo(symbol: string): Promise<Quote> {
     }
   }
 
+  const week52High =
+    typeof meta.fiftyTwoWeekHigh === "number" ? meta.fiftyTwoWeekHigh : null;
+  const week52Low =
+    typeof meta.fiftyTwoWeekLow === "number" ? meta.fiftyTwoWeekLow : null;
+
   return {
     symbol,
     price,
     previousClose,
     changePercent: pctChange(price, previousClose),
+    week52High,
+    week52Low,
     source: "yahoo",
   };
 }
@@ -102,11 +128,15 @@ async function fetchFinnhub(symbol: string): Promise<Quote> {
       ? data.dp
       : pctChange(price, previousClose);
   if (price == null) throw new Error("Finnhub: no price");
+  // Finnhub /quote has day high/low only — no 52-week fields without a second
+  // /stock/metric call. Leave week52 null (graceful empty in UI).
   return {
     symbol,
     price,
     previousClose,
     changePercent,
+    week52High: null,
+    week52Low: null,
     source: "finnhub",
   };
 }
@@ -114,14 +144,7 @@ async function fetchFinnhub(symbol: string): Promise<Quote> {
 async function fetchOne(raw: string): Promise<Quote> {
   const symbol = normalizeTicker(raw);
   if (!symbol) {
-    return {
-      symbol: raw,
-      price: null,
-      previousClose: null,
-      changePercent: null,
-      source: "none",
-      error: "empty symbol",
-    };
+    return emptyQuote(raw, { error: "empty symbol" });
   }
 
   const cached = cache.get(symbol);
@@ -136,14 +159,9 @@ async function fetchOne(raw: string): Promise<Quote> {
     try {
       quote = await fetchFinnhub(symbol);
     } catch (finnhubErr) {
-      quote = {
-        symbol,
-        price: null,
-        previousClose: null,
-        changePercent: null,
-        source: "none",
+      quote = emptyQuote(symbol, {
         error: `yahoo: ${yahooErr instanceof Error ? yahooErr.message : String(yahooErr)}; finnhub: ${finnhubErr instanceof Error ? finnhubErr.message : String(finnhubErr)}`,
-      };
+      });
     }
   }
 
