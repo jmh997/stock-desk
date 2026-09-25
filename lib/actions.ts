@@ -127,9 +127,9 @@ export async function toggleMemoStar(id: string) {
 }
 
 export async function listMemos(q?: string) {
-  await ensureSchema();
-  const db = getDb();
   if (q && q.trim()) {
+    await ensureSchema();
+    const db = getDb();
     const term = `%${q.trim()}%`;
     return db
       .select()
@@ -147,6 +147,8 @@ export async function listMemos(q?: string) {
         desc(memos.createdAt),
       );
   }
+  await ensureSchema();
+  const db = getDb();
   return db
     .select()
     .from(memos)
@@ -174,4 +176,57 @@ export async function listHoldings() {
   await ensureSchema();
   const db = getDb();
   return db.select().from(holdings).orderBy(holdings.ticker);
+}
+
+/** Universe for backtest UI: distinct tickers from memos (starred first), plus watchlist/holdings. */
+export async function listBacktestUniverse(): Promise<
+  Array<{ ticker: string; starred: boolean; source: "memo" | "watchlist" | "holding" }>
+> {
+  await ensureSchema();
+  const db = getDb();
+  const [memoRows, wl, hld] = await Promise.all([
+    db
+      .select({
+        ticker: memos.ticker,
+        starred: memos.starred,
+      })
+      .from(memos),
+    db.select().from(watchlist),
+    db.select().from(holdings),
+  ]);
+
+  const map = new Map<
+    string,
+    { ticker: string; starred: boolean; source: "memo" | "watchlist" | "holding" }
+  >();
+
+  for (const m of memoRows) {
+    const t = normalizeTicker(m.ticker);
+    if (!t) continue;
+    const prev = map.get(t);
+    if (!prev) {
+      map.set(t, { ticker: t, starred: !!m.starred, source: "memo" });
+    } else if (m.starred) {
+      prev.starred = true;
+    }
+  }
+  for (const w of wl) {
+    const t = normalizeTicker(w.ticker);
+    if (!t) continue;
+    if (!map.has(t)) {
+      map.set(t, { ticker: t, starred: false, source: "watchlist" });
+    }
+  }
+  for (const h of hld) {
+    const t = normalizeTicker(h.ticker);
+    if (!t) continue;
+    if (!map.has(t)) {
+      map.set(t, { ticker: t, starred: false, source: "holding" });
+    }
+  }
+
+  return [...map.values()].sort((a, b) => {
+    if (a.starred !== b.starred) return a.starred ? -1 : 1;
+    return a.ticker.localeCompare(b.ticker);
+  });
 }
