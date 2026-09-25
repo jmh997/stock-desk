@@ -47,6 +47,12 @@ export default function RootLayout({
               >
                 Memos
               </Link>
+              <Link
+                href="/backtest"
+                className="rounded-md px-2.5 py-1.5 text-[var(--muted)] hover:bg-[var(--bg-row)] hover:text-[var(--text)]"
+              >
+                Backtest
+              </Link>
             </nav>
           </div>
         </header>
