@@ -84,7 +84,7 @@ function pctClass(n: number | null | undefined): string {
 }
 
 function formatRet(n: number | null | undefined): string {
-  if (n == null || Number.isNaN(n)) return "\u2014";
+  if (n == null || Number.isNaN(n)) return "--";
   return formatPct(n * 100);
 }
 
@@ -183,7 +183,7 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
         </div>
         {universe.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">
-            No tickers yet \u2014 add memos or watchlist items first.
+            No tickers yet -- add memos or watchlist items first.
           </p>
         ) : (
           <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto">
@@ -200,7 +200,7 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
                       : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--border-strong)]"
                   }`}
                 >
-                  {u.starred ? "\u2605 " : ""}
+                  {u.starred ? "* " : ""}
                   {u.ticker}
                 </button>
               );
@@ -208,7 +208,7 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
           </div>
         )}
         <p className="text-xs text-[var(--muted)]">
-          Selected: {selected.join(", ") || "\u2014"} ({selected.length}/15)
+          Selected: {selected.join(", ") || "--"} ({selected.length}/15)
         </p>
       </div>
 
@@ -262,7 +262,7 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
                     : "text-[var(--warn)]"
                 }`}
               >
-                Sum: {weightSum.toFixed(4)} (need 1.0 \u00b1 0.001)
+                Sum: {weightSum.toFixed(4)} (need 1.0 +/- 0.001)
               </p>
             </div>
           )}
@@ -304,7 +304,7 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
                 value={customStart}
                 onChange={(e) => setCustomStart(e.target.value)}
               />
-              <span className="self-center text-xs text-[var(--muted)]">\u2192</span>
+              <span className="self-center text-xs text-[var(--muted)]"> to </span>
               <input
                 className="input max-w-[10rem]"
                 type="date"
@@ -362,7 +362,7 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
           disabled={loading || selected.length === 0}
           onClick={() => void run()}
         >
-          {loading ? "Running\u2026" : "Run backtest"}
+          {loading ? "Running..." : "Run backtest"}
         </button>
         {error && (
           <p className="text-sm text-[var(--down)]">{error}</p>
@@ -388,7 +388,7 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-sm font-semibold">Equity curve</h2>
               <p className="text-xs text-[var(--muted)]">
-                {result.meta.commonStart} \u2192 {result.meta.commonEnd} \u00b7 as of{" "}
+                {result.meta.commonStart} to {result.meta.commonEnd} | as of{" "}
                 {result.meta.asOf}
               </p>
             </div>
@@ -430,7 +430,7 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
                       >
                         {key === "sharpeRough"
                           ? p == null
-                            ? "\u2014"
+                            ? "--"
                             : formatNumber(p as number, 2)
                           : formatRet(p as number)}
                       </td>
@@ -441,7 +441,7 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
                       >
                         {key === "sharpeRough"
                           ? b == null
-                            ? "\u2014"
+                            ? "--"
                             : formatNumber(b as number, 2)
                           : formatRet(b as number | null)}
                       </td>
@@ -492,10 +492,10 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
                         {formatNumber(t.weight * 100, 1)}%
                       </td>
                       <td className="py-2 pr-3 font-mono text-xs text-[var(--muted)]">
-                        {t.firstDate ?? "\u2014"} \u2192 {t.lastDate ?? "\u2014"}
+                        {t.firstDate ?? "--"} to {t.lastDate ?? "--"}
                       </td>
                       <td className="py-2 pr-3 font-mono">
-                        {c ? `${formatNumber(c.endWeight * 100, 1)}%` : "\u2014"}
+                        {c ? `${formatNumber(c.endWeight * 100, 1)}%` : "--"}
                       </td>
                       <td
                         className={`py-2 font-mono ${pctClass(
@@ -504,7 +504,7 @@ export function BacktestPanel({ universe }: { universe: UniverseItem[] }) {
                       >
                         {c
                           ? formatRet(c.approxReturnContribution)
-                          : "\u2014"}
+                          : "--"}
                       </td>
                     </tr>
                   );
